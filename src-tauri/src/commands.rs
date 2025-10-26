@@ -94,18 +94,33 @@ async fn do_paste(utf16_units: Vec<u16>, stand: u32, float: u32) -> Result<(), &
                 SendInput(&input, std::mem::size_of::<INPUT>() as i32);
             }
         } else {
-            let input = [INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VIRTUAL_KEY(0),
-                        wScan: item,
-                        dwFlags: KEYEVENTF_UNICODE,
-                        time: 0,
-                        dwExtraInfo: 0,
+            // 对于 Unicode 字符，必须发送按下和释放两个事件
+            let input = [
+                INPUT {
+                    r#type: INPUT_KEYBOARD,
+                    Anonymous: INPUT_0 {
+                        ki: KEYBDINPUT {
+                            wVk: VIRTUAL_KEY(0),
+                            wScan: item,
+                            dwFlags: KEYEVENTF_UNICODE,
+                            time: 0,
+                            dwExtraInfo: 0,
+                        },
                     },
                 },
-            }];
+                INPUT {
+                    r#type: INPUT_KEYBOARD,
+                    Anonymous: INPUT_0 {
+                        ki: KEYBDINPUT {
+                            wVk: VIRTUAL_KEY(0),
+                            wScan: item,
+                            dwFlags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+                            time: 0,
+                            dwExtraInfo: 0,
+                        },
+                    },
+                },
+            ];
             unsafe {
                 SendInput(&input, std::mem::size_of::<INPUT>() as i32);
             }
