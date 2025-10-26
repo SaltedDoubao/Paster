@@ -8,9 +8,58 @@
 由于触摸键盘使用 winnls.h 中定义的代理宏将输入发送到系统，因此键盘事件挂钩上的侦听器必须解码源自触摸键盘的输入。 有关详细信息，请参阅 [代理项和补充字符](https://learn.microsoft.com/zh-cn/windows/desktop/Intl/surrogates-and-supplementary-characters)。
 辅助功能应用程序可以使用 **SendInput** 注入与 shell 处理的应用程序启动快捷键对应的击键。 此功能不保证适用于其他类型的应用程序。
 ## 编译
+
+### 前置要求
+- Node.js (推荐 v18+)
+- Rust (推荐使用 [rustup](https://rustup.rs/) 安装)
+- pnpm (可通过 `npm install -g pnpm` 安装)
+
+### 构建步骤
+
+1. **安装前端依赖**
+```bash
+pnpm install
+```
+
+2. **构建前端**
 ```bash
 pnpm build
+```
+
+3. **安装 Tauri CLI v1**（本项目使用 Tauri v1.5）
+```bash
+cargo install tauri-cli --version "^1.0" --locked
+```
+
+4. **构建桌面应用**
+```bash
 cargo tauri build
+```
+
+### 构建产物
+
+构建完成后，会在 `src-tauri/target/release/` 目录下生成：
+
+- **独立 EXE 文件**：`paster.exe`（可直接运行，无需安装）
+- **MSI 安装包**：`bundle/msi/paster_0.1.4_x64_en-US.msi`
+- **NSIS 安装包**：`bundle/nsis/paster_0.1.4_x64-setup.exe`
+
+### 开发模式
+
+如果需要开发调试，可以运行：
+```bash
+# 前端开发服务器
+pnpm dev
+
+# 另一个终端运行 Tauri 开发模式
+cargo tauri dev
+```
+
+### 仅构建 EXE（不生成安装包）
+
+```bash
+cargo build --release
+# 生成的 exe 位于：src-tauri/target/release/paster.exe
 ```
 ## 截图
 <div align="center">
