@@ -16,6 +16,9 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "globalShortcut": {
+        "all": true
       }
     },
     "bundle": {
@@ -60,10 +63,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "width": 300,
-        "height": 200,
-        "minWidth": 300,
-        "minHeight": 200,
+        "width": 350,
+        "height": 260,
+        "minWidth": 350,
+        "minHeight": 260,
         "center": true,
         "resizable": true,
         "maximizable": true,

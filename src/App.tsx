@@ -1,16 +1,27 @@
 import {
   Body1Stronger,
   Button,
+  Dropdown,
   FluentProvider,
   Input,
   InputOnChangeData,
   Label,
+  Option,
   Spinner,
   webDarkTheme,
   webLightTheme,
 } from '@fluentui/react-components'
 import { invoke } from '@tauri-apps/api'
+import { listen } from '@tauri-apps/api/event'
 import { useEffect, useRef, useState } from 'react'
+
+const HOTKEY_OPTIONS = [
+  { key: 'CmdOrCtrl+Alt+V', text: 'Ctrl+Alt+V' },
+  { key: 'Alt+V', text: 'Alt+V' },
+  { key: 'CmdOrCtrl+1', text: 'Ctrl+1' },
+  { key: 'Alt+1', text: 'Alt+1' },
+]
+
 export default function App() {
   const [theme, setTheme] = useState(webLightTheme)
   const [errMsg, setErrMsg] = useState('')
@@ -20,6 +31,7 @@ export default function App() {
   const lastFloat = useRef('5')
   const [counter, setCounter] = useState(-1)
   const [buttonDisabled, setButtonDisabled] = useState(false)
+  const [selectedHotkey, setSelectedHotkey] = useState<string[]>(['CmdOrCtrl+Alt+V'])
 
   const onChange = (
     set: React.Dispatch<React.SetStateAction<string>>,
@@ -66,15 +78,63 @@ export default function App() {
     }, 1000)
   }
 
+  const onHotkeyPaste = async () => {
+    // 快捷键触发的粘贴，跳过倒计时直接执行
+    if (buttonDisabled) return // 如果正在执行中，忽略
+    
+    setButtonDisabled(true)
+    setCounter(0) // 显示执行中状态
+    try {
+      await invoke('paste_instant', {
+        stand: parseInt(lastStand.current),
+        float: parseInt(lastFloat.current),
+      })
+      setErrMsg('')
+    } catch (e) {
+      setErrMsg(e as string)
+    }
+    setButtonDisabled(false)
+    setCounter(-1)
+  }
+
+  const onHotkeyChange = async (_event: any, data: any) => {
+    const newHotkey = data.optionValue
+    if (newHotkey) {
+      setSelectedHotkey([newHotkey])
+      try {
+        await invoke('set_hotkey', { hotkey: newHotkey })
+        // 提示用户需要重启应用以使快捷键生效
+        setErrMsg('快捷键已更新，请重启应用以生效')
+        setTimeout(() => setErrMsg(''), 3000)
+      } catch (e) {
+        setErrMsg(e as string)
+      }
+    }
+  }
+
   useEffect(() => {
+    // 设置主题
     const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
     setTheme(mediaQueryList.matches ? webDarkTheme : webLightTheme)
-    const listener = (event: MediaQueryListEvent) => {
+    const themeListener = (event: MediaQueryListEvent) => {
       setTheme(event.matches ? webDarkTheme : webLightTheme)
     }
-    mediaQueryList.addEventListener('change', listener)
+    mediaQueryList.addEventListener('change', themeListener)
+
+    // 加载初始快捷键配置
+    invoke<string>('get_hotkey').then((hotkey) => {
+      setSelectedHotkey([hotkey])
+    }).catch(console.error)
+
+    // 监听快捷键触发事件
+    const unlistenPromise = listen('shortcut-paste', () => {
+      console.log('收到快捷键触发事件')
+      onHotkeyPaste()
+    })
+
     return () => {
-      mediaQueryList.removeEventListener('change', listener)
+      mediaQueryList.removeEventListener('change', themeListener)
+      unlistenPromise.then((unlisten) => unlisten())
     }
   }, [])
 
@@ -118,6 +178,22 @@ export default function App() {
               alignItems: 'flex-end',
               marginBlock: 20,
             }}>
+            <div style={{ marginBottom: 10 }}>
+              <Label weight="semibold">全局快捷键:</Label>
+              <Dropdown
+                value={HOTKEY_OPTIONS.find(opt => opt.key === selectedHotkey[0])?.text || 'Ctrl+Alt+V'}
+                selectedOptions={selectedHotkey}
+                onOptionSelect={onHotkeyChange}
+                size="small"
+                style={{ marginLeft: 8, minWidth: 130 }}
+              >
+                {HOTKEY_OPTIONS.map((option) => (
+                  <Option key={option.key} value={option.key}>
+                    {option.text}
+                  </Option>
+                ))}
+              </Dropdown>
+            </div>
             <div style={{ marginBottom: 10 }}>
               <Label weight="semibold">基本延迟:</Label>
               <Input

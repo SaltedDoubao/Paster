@@ -58,9 +58,8 @@ fn get_clipboard() -> Result<Vec<u16>, &'static str> {
     return Ok(result);
 }
 
-#[tauri::command]
-pub async fn paste(stand: u32, float: u32) -> Result<(), &'static str> {
-    let utf16_units: Vec<u16> = get_clipboard()?;
+/// 执行粘贴操作的核心逻辑
+async fn do_paste(utf16_units: Vec<u16>, stand: u32, float: u32) -> Result<(), &'static str> {
     for item in utf16_units {
         if item == 10 {
             //必须特别处理回车
@@ -116,5 +115,19 @@ pub async fn paste(stand: u32, float: u32) -> Result<(), &'static str> {
         sleep(Duration::from_millis((stand + random % float) as u64)).await;
     }
 
-    return Ok(());
+    Ok(())
+}
+
+/// 通过按钮触发的粘贴（有倒计时）
+#[tauri::command]
+pub async fn paste(stand: u32, float: u32) -> Result<(), &'static str> {
+    let utf16_units: Vec<u16> = get_clipboard()?;
+    do_paste(utf16_units, stand, float).await
+}
+
+/// 通过快捷键触发的粘贴（无倒计时，立即执行）
+#[tauri::command]
+pub async fn paste_instant(stand: u32, float: u32) -> Result<(), &'static str> {
+    let utf16_units: Vec<u16> = get_clipboard()?;
+    do_paste(utf16_units, stand, float).await
 }
